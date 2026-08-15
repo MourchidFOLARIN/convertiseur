@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Convertisseur Universel</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0a0a0f;color:#e2e8f0;font-family:'Courier New',monospace;min-height:100vh;padding:24px 16px;}
+.wrap{max-width:1280px;margin:0 auto;}
+
+/* HEADER */
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:1px solid #1e2a3a;padding-bottom:18px;margin-bottom:18px;flex-wrap:wrap;}
+.hbar{width:4px;height:32px;border-radius:4px;background:linear-gradient(#3b82f6,#14b8a6);flex-shrink:0;}
+.htitle{display:flex;align-items:center;gap:10px;}
+h1{font-size:1.2rem;font-weight:700;color:#fff;letter-spacing:-0.02em;}
+h1 span{color:#60a5fa;}
+.hsub{font-size:0.7rem;color:#4b5563;margin-top:4px;padding-left:14px;}
+.hbtns{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+button{cursor:pointer;border:none;font-family:inherit;}
+#clearAllBtn{padding:6px 12px;font-size:0.7rem;background:#1f0a0a;color:#f87171;border:1px solid #7f1d1d;border-radius:8px;}
+#clearAllBtn:hover{background:#2d0a0a;}
+#themeToggle{padding:6px 10px;font-size:0.75rem;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:8px;}
+#searchBox{padding:6px 12px;font-size:0.72rem;background:#111827;color:#e2e8f0;border:1px solid #374151;border-radius:8px;outline:none;width:160px;font-family:inherit;}
+#searchBox:focus{border-color:#3b82f6;}
+#searchBox::placeholder{color:#4b5563;}
+
+/* ANALYSEUR INTELLIGENT */
+.magic-zone {background:#111827;border:2px dashed #3b82f6;border-radius:14px;padding:16px;margin-bottom:20px;transition: border-color 0.2s, background 0.2s;}
+.magic-title {font-size:0.85rem;font-weight:bold;color:#60a5fa;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.magic-flex {display:flex;gap:16px;flex-wrap:wrap;}
+.magic-input-box {flex:1;min-width:300px;}
+.magic-output-box {flex:1;min-width:300px;background:#0a0a0f;border:1px solid #1e2a3a;border-radius:8px;padding:12px;font-size:0.75rem;}
+.magic-step {background:rgba(59,130,246,0.1);border-left:3px solid #3b82f6;padding:8px 10px;margin-bottom:8px;border-radius:0 6px 6px 0; font-size:0.72rem;}
+.magic-step span {color:#60a5fa;font-weight:bold;}
+.magic-success {border-color:#22c55e!important;background:rgba(34,197,94,0.03)!important;}
+.magic-final {margin-top:10px;padding-top:10px;border-top:1px dashed #22c55e;color:#4ade80;}
+.magic-final-title {font-weight:bold;font-size:0.78rem;margin-bottom:4px;color:#22c55e;}
+
+/* CAT FILTERS */
+#catFilters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
+.catbtn{padding:4px 12px;font-size:0.65rem;font-weight:700;letter-spacing:0.06em;border-radius:9999px;border:1px solid;cursor:pointer;font-family:inherit;background:transparent;transition:opacity 0.15s;}
+.catbtn:not(.active){opacity:0.45;}
+.catbtn.active{opacity:1;}
+
+/* GRID */
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px;}
+
+/* CARD */
+.card{background:#111827;border:1px solid #1e2a3a;border-radius:14px;padding:14px;position:relative;}
+.card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:6px;}
+.card-left{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;}
+.clabel{font-size:0.6rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;padding:2px 7px;border-radius:4px;}
+.cbadge{font-size:0.55rem;font-weight:600;padding:1px 6px;border-radius:9999px;background:#1e293b;color:#6b7280;white-space:nowrap;}
+.cro{font-size:0.55rem;padding:1px 6px;border-radius:9999px;background:#1f0a0a;color:#f87171;font-weight:600;}
+.cerr{font-size:0.65rem;color:#f87171;display:none;flex-shrink:0;}
+textarea{width:100%;padding:8px 10px;background:#0a0a0f;border:1px solid #1e2a3a;border-radius:8px;color:#e2e8f0;font-family:'Courier New',monospace;font-size:0.72rem;resize:none;outline:none;line-height:1.5;transition:border-color 0.15s;}
+textarea:focus{border-color:#3b82f6;}
+textarea.error{border-color:#dc2626!important;}
+textarea[readonly]{opacity:0.6;cursor:default;}
+.hash-note{font-size:0.58rem;color:#4b5563;font-style:italic;margin-top:4px;}
+.card-actions{position:absolute;right:10px;bottom:10px;display:flex;gap:5px;opacity:0;transition:opacity 0.15s;}
+.card:hover .card-actions{opacity:1;}
+.btn-copy,.btn-clear{padding:4px 6px;border-radius:6px;font-size:0.65rem;font-family:inherit;}
+.btn-copy{background:#1e293b;color:#94a3b8;}
+.btn-copy:hover{background:#293548;}
+.btn-copy.copied{background:#15803d;color:#fff;}
+.btn-clear{background:#1f0a0a;color:#f87171;}
+.btn-clear:hover{background:#2d0a0a;}
+
+/* COLORS */
+.c-blue .clabel{color:#60a5fa;background:rgba(59,130,246,0.1);}
+.c-blue{border-color:rgba(59,130,246,0.25);}
+.c-purple .clabel{color:#c084fc;background:rgba(168,85,247,0.1);}
+.c-purple{border-color:rgba(168,85,247,0.25);}
+.c-violet .clabel{color:#a78bfa;background:rgba(139,92,246,0.1);}
+.c-violet{border-color:rgba(139,92,246,0.25);}
+.c-fuchsia .clabel{color:#e879f9;background:rgba(217,70,239,0.1);}
+.c-fuchsia{border-color:rgba(217,70,239,0.25);}
+.c-pink .clabel{color:#f472b6;background:rgba(236,72,153,0.1);}
+.c-pink{border-color:rgba(236,72,153,0.25);}
+.c-rose .clabel{color:#fb7185;background:rgba(244,63,94,0.1);}
+.c-rose{border-color:rgba(244,63,94,0.25);}
+.c-orange .clabel{color:#fb923c;background:rgba(249,115,22,0.1);}
+.c-orange{border-color:rgba(249,115,22,0.25);}
+.c-amber .clabel{color:#fbbf24;background:rgba(245,158,11,0.1);}
+.c-amber{border-color:rgba(245,158,11,0.25);}
+.c-yellow .clabel{color:#facc15;background:rgba(234,179,8,0.1);}
+.c-yellow{border-color:rgba(234,179,8,0.25);}
+.c-lime .clabel{color:#a3e635;background:rgba(132,204,22,0.1);}
+.c-lime{border-color:rgba(132,204,22,0.25);}
+.c-green .clabel{color:#4ade80;background:rgba(34,197,94,0.1);}
+.c-green{border-color:rgba(34,197,94,0.25);}
+.c-emerald .clabel{color:#34d399;background:rgba(16,185,129,0.1);}
+.c-emerald{border-color:rgba(16,185,129,0.25);}
+.c-teal .clabel{color:#2dd4bf;background:rgba(20,184,166,0.1);}
+.c-teal{border-color:rgba(20,184,166,0.25);}
+.c-cyan .clabel{color:#22d3ee;background:rgba(6,182,212,0.1);}
+.c-cyan{border-color:rgba(6,182,212,0.25);}
+.c-sky .clabel{color:#38bdf8;background:rgba(14,165,233,0.1);}
+.c-sky{border-color:rgba(14,165,233,0.25);}
+.c-indigo .clabel{color:#818cf8;background:rgba(99,102,241,0.1);}
+.c-indigo{border-color:rgba(99,102,241,0.25);}
+
+/* Light mode */
+body.light{background:#f1f5f9;color:#0f172a;}
+body.light .card, body.light .magic-zone{background:#fff;border-color:#cbd5e1;}
+body.light textarea, body.light .magic-output-box{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
+body.light .cbadge{background:#f1f5f9;color:#94a3b8;}
+body.light #searchBox{background:#fff;color:#0f172a;border-color:#cbd5e1;}
+body.light #clearAllBtn{background:#fff0f0;}
+body.light #themeToggle{background:#f1f5f9;color:#475569;border-color:#cbd5e1;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:#374151;border-radius:4px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="htitle">
+        <div class="hbar"></div>
+        <h1>Convertisseur Universel &mdash; <span id="totalCount">?</span> encodages</h1>
+      </div>
+      <p class="hsub">Tapez dans n'importe quel champ → tout se met à jour. Les hachages sont en lecture seule.</p>
+    </div>
+    <div class="hbtns">
+      <input id="searchBox" type="text" placeholder="🔍 Filtrer...">
+      <button id="clearAllBtn">✕ Tout effacer</button>
+      <button id="themeToggle">☀ Thème</button>
+    </div>
+  </header>
+
+  <div class="magic-zone" id="magicZone">
+    <div class="magic-title">✨ Analyseur Intelligent & Multi-Décodeur (Auto-Casser les chaînes)</div>
+    <div class="magic-flex">
+      <div class="magic-input-box">
+        <textarea id="magicInput" rows="3" placeholder="Collez ici n'importe quel encodage inconnu (ex: Base64 imbriqué, Hexa, Morse, César...)"></textarea>
+      </div>
+      <div class="magic-output-box" id="magicOutput">
+        <span style="color:#4b5563; font-style:italic;">En attente d'une chaîne suspecte...</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="catFilters"></div>
+  <div id="grid"></div>
+</div>
+
+<script>
+// ═══════════════════ UTILITAIRES ═══════════════════
+const enc8 = s => Array.from(new TextEncoder().encode(s));
+const dec8 = b => new TextDecoder().decode(new Uint8Array(b));
+
+// Base N générique (BigInt)
+function baseNEnc(n, chars) {
+  return str => {
+    const bytes = enc8(str);
+    if (!bytes.length) return '';
+    let num = 0n;
+    for (const b of bytes) num = (num << 8n) | BigInt(b);
+    if (num === 0n) return chars[0];
+    const base = BigInt(n); let out = '';
+    while (num > 0n) { out = chars[Number(num % base)] + out; num /= base; }
+    return out;
+  };
+}
+function baseNDec(n, chars) {
+  return val => {
+    const v = val.trim(); if (!v) return '';
+    const base = BigInt(n); let num = 0n;
+    for (const c of v) { const idx = chars.indexOf(c); if (idx === -1) throw new Error('Char invalide: ' + c); num = num * base + BigInt(idx); }
+    let hex = num.toString(16); if (hex.length % 2) hex = '0' + hex;
+    return dec8(hex.match(/.{2}/g).map(h => parseInt(h, 16)));
+  };
+}
+
+// Base32
+const B32C = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+function base32Enc(bytes) {
+  let bits=0,val=0,out='';
+  for(const b of bytes){val=(val<<8)|b;bits+=8;while(bits>=5){out+=B32C[(val>>>(bits-5))&31];bits-=5;}}
+  if(bits>0)out+=B32C[(val<<(5-bits))&31];
+  while(out.length%8)out+='='; return out;
+}
+function base32Dec(str) {
+  const clean=str.toUpperCase().replace(/=+$/,'');
+  let bits=0,val=0; const out=[];
+  for(const c of clean){const idx=B32C.indexOf(c);if(idx===-1)throw new Error();val=(val<<5)|idx;bits+=5;if(bits>=8){out.push((val>>>(bits-8))&255);bits-=8;}}
+  return out;
+}
+
+// Ascii85
+function ascii85Enc(str) {
+  const bytes = enc8(str); let out = '<~';
+  for(let i=0;i<bytes.length;i+=4){
+    const c=[bytes[i]||0,bytes[i+1]||0,bytes[i+2]||0,bytes[i+3]||0];
+    let n=((c[0]<<24)|(c[1]<<16)|(c[2]<<8)|c[3])>>>0;
+    const real=Math.min(4,bytes.length-i);
+    if(n===0&&real===4){out+='z';continue;}
+    const ch=[]; for(let j=0;j<5;j++){ch.unshift(String.fromCharCode((n%85)+33));n=Math.floor(n/85);}
+    out+=ch.slice(0,real+1).join('');
+  }
+  return out+'~>';
+}
+function ascii85Dec(val) {
+  const clean=val.trim().replace(/^<~/,'').replace(/~>$/,'').replace(/\s/g,'');
+  const bytes=[]; let i=0;
+  while(i<clean.length){
+    if(clean[i]==='z'){bytes.push(0,0,0,0);i++;continue;}
+    const chunk=clean.slice(i,i+5); let n=0;
+    for(const ch of chunk) n=n*85+(ch.charCodeAt(0)-33);
+    const pad=5-chunk.length;
+    for(let p=0;p<pad;p++) n=n*85+84;
+    const quad=[(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255];
+    bytes.push(...quad.slice(0,chunk.length-1)); i+=5;
+  }
+  return dec8(bytes);
+}
+
+// Base91
+const B91='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&()*+,./:;<=>?@[]^_`{|}~"';
+function base91Enc(bytes){let b=0,n=0,o='';for(const byte of bytes){b|=byte<<n;n+=8;if(n>13){let v=b&8191;if(v>88){b>>=13;n-=13;}else{v=b&16383;b>>=14;n-=14;}o+=B91[v%91]+B91[Math.floor(v/91)];}}if(n){o+=B91[b%91];if(n>7||b>90)o+=B91[Math.floor(b/91)];}return o;}
+function base91Dec(str){let v=-1,b=0,n=0;const out=[];for(const c of str){const p=B91.indexOf(c);if(p===-1)continue;if(v<0){v=p;}else{v+=p*91;b|=v<<n;n+=(v&8191)>88?13:14;v=-1;do{out.push(b&255);b>>=8;n-=8;}while(n>7);}}if(v>-1)out.push((b|v<<n)&255);return dec8(out);}
+
+// UUencode
+function uuEnc(str){const bytes=enc8(str);let out='';for(let i=0;i<bytes.length;i+=45){const line=bytes.slice(i,i+45);out+=String.fromCharCode(line.length+32);for(let j=0;j<line.length;j+=3){const a=line[j]||0,b=line[j+1]||0,c=line[j+2]||0;out+=String.fromCharCode(((a>>2)&63)+32,(((a&3)<<4|(b>>4))&63)+32,(((b&15)<<2|(c>>6))&63)+32,(c&63)+32);}out+='\n';}return out.trim();}
+function uuDec(val){const lines=val.trim().split('\n');const bytes=[];for(const line of lines){if(!line.trim())continue;const len=line.charCodeAt(0)-32;if(len<=0)continue;for(let i=1;i+3<line.length;i+=4){const a=(line.charCodeAt(i)-32)&63,b=(line.charCodeAt(i+1)-32)&63,c=(line.charCodeAt(i+2)-32)&63,d=(line.charCodeAt(i+3)-32)&63;bytes.push((a<<2)|(b>>4),(b<<4)|(c>>2),(c<<6)|d);}}return dec8(bytes);}
+
+// Quoted-Printable
+function qpEnc(str){return enc8(str).map(b=>(b===61||(b<32&&b!==9&&b!==10&&b!==13)||b>126)?'='+b.toString(16).toUpperCase().padStart(2,'0'):String.fromCharCode(b)).join('');}
+function qpDec(val){return val.replace(/=\r?\n/g,'').replace(/=([0-9A-Fa-f]{2})/g,(_,h)=>String.fromCharCode(parseInt(h,16)));}
+
+// ROT / César
+const rot=(str,n)=>str.replace(/[a-zA-Z]/g,c=>{const b=c<='Z'?65:97;return String.fromCharCode(((c.charCodeAt(0)-b+n+52)%26)+b);});
+const rot5=str=>str.replace(/[0-9]/g,c=>String.fromCharCode(((c.charCodeAt(0)-48+5)%10)+48));
+const rot47=str=>str.replace(/[!-~]/g,c=>String.fromCharCode(33+((c.charCodeAt(0)-33+47)%94)));
+const atbash=str=>str.replace(/[a-zA-Z]/g,c=>{const b=c<='Z'?65:97;return String.fromCharCode(b+25-(c.charCodeAt(0)-b));});
+
+function vigenereEnc(str,key){key=key.toUpperCase();let ki=0;return str.replace(/[a-zA-Z]/g,c=>{const b=c<='Z'?65:97,k=key.charCodeAt(ki++%key.length)-65;return String.fromCharCode(((c.charCodeAt(0)-b+k+26)%26)+b);});}
+function vigenereDec(str,key){key=key.toUpperCase();let ki=0;return str.replace(/[a-zA-Z]/g,c=>{const b=c<='Z'?65:97,k=key.charCodeAt(ki++%key.length)-65;return String.fromCharCode(((c.charCodeAt(0)-b-k+26)%26)+b);});}
+
+const PGRID='ABCDEFGHIKLMNOPQRSTUVWXYZ';
+function polyEnc(str){return str.toUpperCase().replace(/J/g,'I').replace(/[A-Z]/g,c=>{const i=PGRID.indexOf(c);return i<0?c:(Math.floor(i/5)+1)+''+(i%5+1);});}
+function polyDec(str){const c=str.replace(/\s/g,'');let o='';for(let i=0;i<c.length;i+=2){const r=parseInt(c[i])-1,col=parseInt(c[i+1])-1;o+=(r>=0&&r<5&&col>=0&&col<5)?PGRID[r*5+col]:(c[i]+(c[i+1]||''));}return o;}
+
+function railEnc(str,r=3){const rows=Array.from({length:r},()=>[]);let row=0,dir=1;for(const c of str){rows[row].push(c);if(row===0)dir=1;if(row===r-1)dir=-1;row+=dir;}return rows.map(r=>r.join('')).join('');}
+function railDec(str,r=3){const n=str.length,pat=[];let row=0,dir=1;for(let i=0;i<n;i++){pat.push(row);if(row===0)dir=1;if(row===r-1)dir=-1;row+=dir;}const cnt=Array(r).fill(0);pat.forEach(r=>cnt[r]++);const rows=[];let pos=0;for(let i=0;i<r;i++){rows.push(str.slice(pos,pos+cnt[i]).split(''));pos+=cnt[i];}const idx=Array(r).fill(0);let out='';for(const r of pat)out+=rows[r][idx[r]++];return out;}
+
+function baconEnc(str){return str.toUpperCase().replace(/[A-Z]/g,c=>{const n=c.charCodeAt(0)-65;return n.toString(2).padStart(5,'0').replace(/0/g,'A').replace(/1/g,'B');}).replace(/([AB]{5})/g,'$1 ').trim();}
+function baconDec(str){return(str.replace(/\s+/g,'').match(/.{5}/g)||[]).map(g=>{const n=parseInt(g.replace(/A/g,'0').replace(/B/g,'1'),2);return n>=0&&n<26?String.fromCharCode(n+65):'?';}).join('');}
+
+const LEET_E={a:'4',e:'3',i:'1',o:'0',s:'5',t:'7',l:'1',g:'9',b:'8'};
+const LEET_D=Object.fromEntries(Object.entries(LEET_E).map(([k,v])=>[v,k]));
+const leetEnc=str=>str.toLowerCase().replace(/[a-z]/g,c=>LEET_E[c]||c);
+const leetDec=str=>str.replace(/./g,c=>LEET_D[c]||c);
+
+const MO={A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..',0:'-----',1:'.----',2:'..---',3:'...--',4:'....-',5:'.....',6:'-....',7:'--...',8:'---..',9:'----.'};
+const MO_R=Object.fromEntries(Object.entries(MO).map(([k,v])=>[v,k]));
+const morseEnc=str=>str.toUpperCase().split('').map(c=>c===' '?'/':MO[c]||'?').join(' ');
+const morseDec=val=>val.trim().split(' / ').map(w=>w.trim().split(' ').map(s=>MO_R[s]||'?').join('')).join(' ');
+
+const NATO={A:'Alpha',B:'Bravo',C:'Charlie',D:'Delta',E:'Echo',F:'Foxtrot',G:'Golf',H:'Hotel',I:'India',J:'Juliet',K:'Kilo',L:'Lima',M:'Mike',N:'November',O:'Oscar',P:'Papa',Q:'Quebec',R:'Romeo',S:'Sierra',T:'Tango',U:'Uniform',V:'Victor',W:'Whiskey',X:'X-ray',Y:'Yankee',Z:'Zulu',0:'Zero',1:'One',2:'Two',3:'Three',4:'Four',5:'Five',6:'Six',7:'Seven',8:'Eight',9:'Nine'};
+const NATO_R=Object.fromEntries(Object.entries(NATO).map(([k,v])=>[v.toLowerCase(),k]));
+const natoEnc=str=>str.toUpperCase().split('').map(c=>c===' '?'/':NATO[c]||c).join(' ');
+const natoDec=val=>val.trim().split(' / ').map(w=>w.trim().split(' ').map(s=>NATO_R[s.toLowerCase()]||s).join('')).join(' ');
+
+const BR={a:'⠁',b:'⠃',c:'⠉',d:'⠙',e:'⠑',f:'⠋',g:'⠛',h:'⠓',i:'⠊',j:'⠚',k:'⠅',l:'⠇',m:'⠍',n:'⠝',o:'⠕',p:'⠏',q:'⠟',r:'⠗',s:'⠎',t:'⠞',u:'⠥',v:'⠧',w:'⠺',x:'⠭',y:'⠽',z:'⠵',' ':'⠀'};
+const BR_R=Object.fromEntries(Object.entries(BR).map(([k,v])=>[v,k]));
+const brailleEnc=str=>str.toLowerCase().replace(/./g,c=>BR[c]||c);
+const brailleDec=str=>Array.from(str).map(c=>BR_R[c]||c).join('');
+
+const T9M={a:'2',b:'22',c:'222',d:'3',e:'33',f:'333',g:'4',h:'44',i:'444',j:'5',k:'55',l:'555',m:'6',n:'66',o:'666',p:'7',q:'77',r:'777',s:'7777',t:'8',u:'88',v:'888',w:'9',x:'99',y:'999',z:'9999'};
+const t9Enc=str=>str.toLowerCase().replace(/./g,c=>c===' '?' ':T9M[c]||c);
+
+async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+async function sha1(s){const b=await crypto.subtle.digest('SHA-1',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+async function sha512(s){const b=await crypto.subtle.digest('SHA-512',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+
+function crc32(str){const bytes=enc8(str);let crc=0xFFFFFFFF;for(const b of bytes){let n=(crc^b)&0xFF;for(let i=0;i<8;i++)n=n&1?(n>>>1)^0xEDB88320:(n>>>1);crc=(crc>>>8)^n;}return((crc^0xFFFFFFFF)>>>0).toString(16).padStart(8,'0');}
+function adler32(str){const bytes=enc8(str);let a=1,b=0;for(const byte of bytes){a=(a+byte)%65521;b=(b+a)%65521;}return((b<<16)|a).toString(16).padStart(8,'0');}
+
+function unicodeEscEnc(s){return Array.from(s).map(c=>'\\u'+c.codePointAt(0).toString(16).padStart(4,'0')).join('');}
+function unicodeEscDec(v){return v.replace(/\\u([0-9a-fA-F]{4,6})/g,(_,h)=>String.fromCodePoint(parseInt(h,16)));}
+function unicodeUEnc(s){return Array.from(s).map(c=>'U+'+c.codePointAt(0).toString(16).toUpperCase().padStart(4,'0')).join(' ');}
+function unicodeUDec(v){return(v.match(/U\+([0-9A-Fa-f]{4,6})/g)||[]).map(u=>String.fromCodePoint(parseInt(u.slice(2),16))).join('');}
+
+const htmlEntEnc=str=>{const el=document.createElement('div');el.appendChild(document.createTextNode(str));return el.innerHTML;};
+const htmlEntDec=val=>{const el=document.createElement('div');el.innerHTML=val;return el.textContent;};
+const htmlNumEnc=str=>Array.from(str).map(c=>`&#${c.codePointAt(0)};`).join('');
+
+const a1z26Enc=str=>Array.from(str.toUpperCase()).map(c=>{const n=c.charCodeAt(0)-64;return(n>=1&&n<=26)?n:c;}).join(' ');
+const a1z26Dec=val=>val.trim().split(/\s+/).map(t=>{const n=parseInt(t,10);return(n>=1&&n<=26)?String.fromCharCode(n+64):t;}).join('');
+
+const charcodeEnc=str=>Array.from(str).map(c=>c.charCodeAt(0)).join(',');
+const charcodeDec=val=>val.split(/[,\s]+/).filter(x=>x).map(n=>String.fromCharCode(parseInt(n,10))).join('');
+
+const hexEntEnc=s=>enc8(s).map(b=>b.toString(16).padStart(2,'0')).join('');
+const hexEntDec=v=>{const c=v.replace(/\s/g,'');if(c.length%2)throw new Error();return dec8(c.match(/.{2}/g).map(h=>parseInt(h,16)));};
+const hex0xEnc=s=>enc8(s).map(b=>'0x'+b.toString(16).padStart(2,'0')).join(' ');
+const hex0xDec=v=>dec8(v.trim().split(/\s+/).map(h=>parseInt(h,16)));
+
+const B36='0123456789abcdefghijklmnopqrstuvwxyz';
+const B58='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+const B62='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const B85='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~';
+
+// ═══════════════════ ENCODAGES LISTE ═══════════════════
+const ENCODINGS = [
+  {id:'text',cat:'source',label:'Texte UTF-8',badge:'Source',color:'blue',ph:'Entrez votre texte ici...', encode:s=>s, decode:v=>v},
+  {id:'bin',cat:'bases',label:'Binaire',badge:'Base 2',color:'purple',ph:'01001000 01100101...', encode:s=>enc8(s).map(b=>b.toString(2).padStart(8,'0')).join(' '), decode:v=>{const c=v.replace(/\s/g,'');if(c.length%8)throw 0;return dec8(c.match(/.{8}/g).map(b=>parseInt(b,2)));}},
+  {id:'base4',cat:'bases',label:'Base 4',badge:'Base 4',color:'violet',ph:'1020...',encode:baseNEnc(4,'0123'),decode:baseNDec(4,'0123')},
+  {id:'base5',cat:'bases',label:'Base 5',badge:'Base 5',color:'fuchsia',ph:'...',encode:baseNEnc(5,'01234'),decode:baseNDec(5,'01234')},
+  {id:'oct',cat:'bases',label:'Octal',badge:'Base 8',color:'orange',ph:'110...', encode:s=>enc8(s).map(b=>b.toString(8)).join(' '), decode:v=>dec8(v.trim().split(/\s+/).filter(x=>x).map(o=>parseInt(o,8)))},
+  {id:'base9',cat:'bases',label:'Base 9',badge:'Base 9',color:'amber',ph:'...',encode:baseNEnc(9,'012345678'),decode:baseNDec(9,'012345678')},
+  {id:'dec',cat:'bases',label:'Décimal ASCII',badge:'Base 10',color:'indigo',ph:'72 101...', encode:s=>enc8(s).join(' '), decode:v=>{const p=v.trim().split(/\s+/).filter(x=>x);return dec8(p.map(d=>{const n=parseInt(d,10);if(isNaN(n)||n<0||n>255)throw 0;return n;}));}},
+  {id:'hex_sp',cat:'bases',label:'Hexadécimal (espaces)',badge:'Base 16',color:'amber',ph:'48 65...', encode:s=>enc8(s).map(b=>b.toString(16).padStart(2,'0')).join(' '), decode:v=>{const c=v.replace(/\s/g,'');if(c.length%2)throw 0;return dec8(c.match(/.{2}/g).map(h=>parseInt(h,16)));}},
+  {id:'hex_compact',cat:'bases',label:'Hex compact',badge:'sans espaces',color:'yellow',ph:'4865...',encode:hexEntEnc,decode:hexEntDec},
+  {id:'hex_0x',cat:'bases',label:'Hex 0x prefix',badge:'0xNN',color:'lime',ph:'0x48...',encode:hex0xEnc,decode:hex0xDec},
+  {id:'b32',cat:'bases',label:'Base 32',badge:'RFC 4648',color:'cyan',ph:'JBSW...',encode:s=>base32Enc(enc8(s)),decode:v=>dec8(base32Dec(v))},
+  {id:'b58',cat:'bases',label:'Base 58',badge:'Bitcoin',color:'amber',ph:'...',encode:baseNEnc(58,B58),decode:baseNDec(58,B58)},
+  {id:'b64',cat:'bases',label:'Base 64',badge:'RFC 4648',color:'green',ph:'SGVsbG8=', encode:s=>btoa(unescape(encodeURIComponent(s))), decode:v=>decodeURIComponent(escape(atob(v.trim())))},
+  {id:'b85',cat:'bases',label:'Ascii85 / Base 85',badge:'PostScript',color:'rose',ph:'<~87cU...~>',encode:ascii85Enc,decode:ascii85Dec},
+  {id:'b91',cat:'bases',label:'Base 91',badge:'Base 91',color:'fuchsia',ph:'nX,...',encode:s=>base91Enc(enc8(s)),decode:base91Dec},
+  {id:'url',cat:'web',label:'URL Encodé',badge:'percent',color:'rose',ph:'Hello%20World',encode:encodeURIComponent,decode:decodeURIComponent},
+  {id:'html_ent',cat:'web',label:'Entités HTML',badge:'&amp;',color:'pink',ph:'&lt;p&gt;',encode:htmlEntEnc,decode:htmlEntDec},
+  {id:'qp',cat:'web',label:'Quoted-Printable',badge:'MIME',color:'violet',ph:'Caf=C3=A9',encode:qpEnc,decode:qpDec},
+  {id:'uuenc',cat:'web',label:'UUencode',badge:'Unix',color:'indigo',ph:'M045...',encode:uuEnc,decode:uuDec},
+  {id:'uni_esc',cat:'unicode',label:'Unicode \\uXXXX',badge:'JS/Py',color:'green',ph:'\\u0048...',encode:unicodeEscEnc,decode:unicodeEscDec},
+  {id:'charcode',cat:'unicode',label:'charCodeAt (,)',badge:'JS',color:'teal',ph:'72,101...',encode:charcodeEnc,decode:charcodeDec},
+  {id:'a1z26',cat:'unicode',label:'A1Z26',badge:'A=1',color:'sky',ph:'8 5...',encode:a1z26Enc,decode:a1z26Dec},
+  {id:'rot13',cat:'cipher',label:'ROT13',badge:'+13',color:'violet',ph:'Uryyb',encode:s=>rot(s,13),decode:v=>rot(v,13)},
+  {id:'rot47',cat:'cipher',label:'ROT47',badge:'ASCII',color:'pink',ph:':6==@',encode:rot47,decode:rot47},
+  {id:'atbash',cat:'cipher',label:'Atbash',badge:'A↔Z',color:'lime',ph:'Svool',encode:atbash,decode:atbash},
+  {id:'leet',cat:'cipher',label:'Leet Speak',badge:'1337',color:'emerald',ph:'h3ll0',encode:leetEnc,decode:leetDec},
+  {id:'morse',cat:'comm',label:'Code Morse',badge:'Signaux',color:'amber',ph:'.... .',encode:morseEnc,decode:morseDec},
+  {id:'nato',cat:'comm',label:'Alphabet OTAN',badge:'Phonétique',color:'blue',ph:'Hotel Echo',encode:natoEnc,decode:natoDec},
+  {id:'braille',cat:'comm',label:'Braille',badge:'⠓⠑⠇⠇⠕',color:'purple',ph:'⠓⠑⠇⠇⠕',encode:brailleEnc,decode:brailleDec},
+  {id:'sha256',cat:'hash',label:'SHA-256',badge:'256-bit',color:'rose',ph:'(lecture seule)',readonly:true,encode:async s=>{try{return await sha256(s);}catch{return 'erreur';}},decode:v=>{throw 0;}},
+  {id:'sha1',cat:'hash',label:'SHA-1',badge:'160-bit',color:'pink',ph:'(lecture seule)',readonly:true,encode:async s=>{try{return await sha1(s);}catch{return 'erreur';}},decode:v=>{throw 0;}},
+  {id:'crc32',cat:'hash',label:'CRC-32',badge:'Checksum',color:'orange',ph:'(lecture seule)',readonly:true,encode:s=>crc32(s),decode:v=>{throw 0;}}
+];
+
+const CATS = {
+  all:{label:'✦ Tout',c:'#94a3b8',bc:'#334155'},
+  source:{label:'◈ Source',c:'#60a5fa',bc:'#1e3a5f'},
+  bases:{label:'⬡ Bases',c:'#fbbf24',bc:'#3d2e00'},
+  web:{label:'⌘ Web',c:'#fb7185',bc:'#3d1020'},
+  unicode:{label:'Ω Unicode',c:'#34d399',bc:'#0a2e1f'},
+  cipher:{label:'⚿ Chiffres',c:'#a78bfa',bc:'#2a1a4f'},
+  comm:{label:'✦ Comm',c:'#38bdf8',bc:'#0a2a3d'},
+  hash:{label:'# Hashes',c:'#f472b6',bc:'#3d0a25'},
+};
+
+// Build filter buttons
+const catFilters = document.getElementById('catFilters');
+let activeFilter = 'all';
+for(const [key,cfg] of Object.entries(CATS)){
+  const count = key==='all' ? ENCODINGS.length : ENCODINGS.filter(e=>e.cat===key).length;
+  const btn = document.createElement('button');
+  btn.className = 'catbtn' + (key==='all'?' active':'');
+  btn.dataset.cat = key;
+  btn.style.color = cfg.c;
+  btn.style.borderColor = cfg.bc;
+  btn.style.background = key==='all'?'#1e293b':'transparent';
+  btn.textContent = cfg.label + ' ' + count;
+  catFilters.appendChild(btn);
+}
+
+// Build cards layout
+const grid = document.getElementById('grid');
+ENCODINGS.forEach(enc => {
+  const card = document.createElement('div');
+  card.className = 'card c-'+enc.color;
+  card.dataset.cat = enc.cat;
+  card.dataset.label = enc.label.toLowerCase();
+  card.innerHTML = `
+    <div class="card-head">
+      <div class="card-left">
+        <span class="clabel">${enc.label}</span>
+        <span class="cbadge">${enc.badge}</span>
+        ${enc.readonly?'<span class="cro">🔒 hash</span>':''}
+      </div>
+      <span class="cerr" id="err_${enc.id}">⚠ invalide</span>
+    </div>
+    <textarea id="field_${enc.id}" rows="2" spellcheck="false" autocomplete="off" placeholder="${enc.ph}" ${enc.readonly?'readonly':''}></textarea>
+    <div class="card-actions">
+      <button class="btn-copy" data-copy="${enc.id}">⧉ Copier</button>
+      ${!enc.readonly?`<button class="btn-clear" data-clear="${enc.id}">✕</button>`:''}
+    </div>
+  `;
+  grid.appendChild(card);
+});
+
+document.getElementById('totalCount').textContent = ENCODINGS.length;
+
+const fields = {};
+ENCODINGS.forEach(e => { fields[e.id] = document.getElementById('field_'+e.id); });
+
+let busy = false;
+async function updateAll(originId) {
+  if(busy) return; busy = true;
+  const enc = ENCODINGS.find(e=>e.id===originId);
+  const ta = fields[originId];
+  const val = ta.value;
+  const errEl = document.getElementById('err_'+originId);
+
+  if(!val.trim()){ clearAll(false); busy=false; return; }
+
+  try {
+    const text = enc.decode(val);
+    ta.classList.remove('error');
+    errEl.style.display = 'none';
+    for(const e of ENCODINGS){
+      if(e.id===originId) continue;
+      try {
+        const result = await Promise.resolve(e.encode(text));
+        fields[e.id].value = result;
+        fields[e.id].classList.remove('error');
+        document.getElementById('err_'+e.id).style.display='none';
+      } catch { fields[e.id].value = e.readonly?'∅':'⚠'; }
+    }
+  } catch {
+    ta.classList.add('error');
+    errEl.style.display = 'inline';
+  }
+  busy = false;
+}
+
+ENCODINGS.forEach(e => {
+  if(!e.readonly) fields[e.id].addEventListener('input', ()=>updateAll(e.id));
+});
+
+function clearAll(reset=true){
+  ENCODINGS.forEach(e=>{
+    if(reset) fields[e.id].value='';
+    fields[e.id].classList.remove('error');
+    document.getElementById('err_'+e.id).style.display='none';
+  });
+}
+
+// Filters logic
+let searchTerm = '';
+function applyFilter(){
+  grid.querySelectorAll('.card').forEach(c=>{
+    const catOk = activeFilter==='all' || c.dataset.cat===activeFilter;
+    const srchOk = !searchTerm || c.dataset.label.includes(searchTerm);
+    c.style.display = (catOk&&srchOk)?'':'none';
+  });
+}
+
+catFilters.addEventListener('click', e=>{
+  const btn = e.target.closest('.catbtn');
+  if(!btn) return;
+  activeFilter = btn.dataset.cat;
+  catFilters.querySelectorAll('.catbtn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.cat===activeFilter);
+    b.style.background = b.dataset.cat===activeFilter?'#1e293b':'transparent';
+  });
+  applyFilter();
+});
+
+document.getElementById('searchBox').addEventListener('input', e=>{
+  searchTerm = e.target.value.toLowerCase().trim();
+  applyFilter();
+});
+
+// Copy / Clear Handlers
+document.addEventListener('click', e=>{
+  const copyId = e.target.closest('[data-copy]')?.dataset.copy;
+  const clearId = e.target.closest('[data-clear]')?.dataset.clear;
+  if(copyId && fields[copyId]){
+    navigator.clipboard.writeText(fields[copyId].value).catch(()=>{fields[copyId].select();document.execCommand('copy');});
+    const btn = e.target.closest('[data-copy]');
+    btn.classList.add('copied'); btn.textContent='✓ Copié!';
+    setTimeout(()=>{btn.classList.remove('copied');btn.textContent='⧉ Copier';},1200);
+  }
+  if(clearId && fields[clearId]){ fields[clearId].value=''; updateAll(clearId); }
+});
+
+document.getElementById('clearAllBtn').addEventListener('click',()=> {
+  clearAll(true);
+  document.getElementById('magicInput').value = '';
+  document.getElementById('magicOutput').innerHTML = '<span style="color:#4b5563; font-style:italic;">En attente d\'une chaîne suspecte...</span>';
+  document.getElementById('magicZone').classList.remove('magic-success');
+});
+
+document.getElementById('themeToggle').addEventListener('click',()=>{
+  document.body.classList.toggle('light');
+  document.getElementById('themeToggle').textContent = document.body.classList.contains('light')?'🌙 Sombre':'☀ Thème';
+});
+
+
+// ═══════════════════ ANALYSEUR INTELLIGENT COMPLET & RECURSIF ═══════════════════
+const magicInput = document.getElementById('magicInput');
+const magicOutput = document.getElementById('magicOutput');
+const magicZone = document.getElementById('magicZone');
+
+magicInput.addEventListener('input', () => {
+  const raw = magicInput.value.trim();
+  if (!raw) {
+    magicOutput.innerHTML = '<span style="color:#4b5563; font-style:italic;">En attente d\'une chaîne suspecte...</span>';
+    magicZone.classList.remove('magic-success');
+    return;
+  }
+
+  let current = raw;
+  let steps = [];
+  let maxIterations = 8; // Permet de casser les chaînes imbriquées à plusieurs couches
+  let loop = true;
+
+  // Fonction de validation pour savoir si la chaîne décodée contient du texte lisible
+  const isReadable = str => /^[\x20-\x7E\r\n\tÀ-ÿ]+$/.test(str) && str.trim().length > 0;
+
+  while (loop && maxIterations > 0) {
+    maxIterations--;
+    let matched = false;
+
+    // 1. Détection HEXADÉCIMAL
+    if (!matched && /^[0-9a-fA-F\s:]+$/.test(current)) {
+      let cleanHex = current.replace(/[\s:]/g, '');
+      if (cleanHex.length >= 4 && cleanHex.length % 2 === 0) {
+        try {
+          let decoded = hexEntDec(cleanHex);
+          if (isReadable(decoded) && decoded !== current) {
+            steps.push({ type: 'Hexadécimal (Base16)', input: current, output: decoded });
+            current = decoded; matched = true;
+          }
+        } catch(e){}
+      }
+    }
+
+    // 2. Détection BASE64
+    if (!matched && /^[A-Za-z0-9+/=\s\r\n]+$/.test(current)) {
+      let cleanB64 = current.replace(/[\s\r\n]/g, '');
+      if (cleanB64.length >= 4 && cleanB64.length % 4 === 0) {
+        try {
+          let decoded = decodeURIComponent(escape(atob(cleanB64)));
+          if (isReadable(decoded) && decoded !== current) {
+            steps.push({ type: 'Base64', input: current, output: decoded });
+            current = decoded; matched = true;
+          }
+        } catch(e){}
+      }
+    }
+
+    // 3. Détection CODE MORSE
+    if (!matched && /^[.\-/\s]+$/.test(current) && (current.includes('.') || current.includes('-'))) {
+      try {
+        let decoded = morseDec(current);
+        if (isReadable(decoded) && !decoded.includes('?')) {
+          steps.push({ type: 'Code Morse', input: current, output: decoded });
+          current = decoded; matched = true;
+        }
+      } catch(e){}
+    }
+
+    // 4. Détection URL ENCODÉ
+    if (!matched && current.includes('%')) {
+      try {
+        let decoded = decodeURIComponent(current);
+        if (decoded !== current && isReadable(decoded)) {
+          steps.push({ type: 'URL Percent Encoding', input: current, output: decoded });
+          current = decoded; matched = true;
+        }
+      } catch(e){}
+    }
+
+    // Si aucun décodeur n'a matché à ce cycle, on arrête la récursion
+    if (!matched) {
+      loop = false;
+    }
+  }
+
+  // Affichage des résultats
+  if (steps.length > 0) {
+    magicZone.classList.add('magic-success');
+    let html = `<div style="margin-bottom: 10px; font-weight: bold; color: #4ade80;">✓ Chemin de décodage trouvé (${steps.length} étape${steps.length > 1 ? 's' : ''}) :</div>`;
+    
+    steps.forEach((step, idx) => {
+      // Sécurisation de l'affichage HTML
+      let cleanInput = step.input.length > 60 ? step.input.substring(0, 57) + '...' : step.input;
+      let cleanOutput = step.output.length > 60 ? step.output.substring(0, 57) + '...' : step.output;
+      
+      html += `
+        <div class="magic-step">
+          <span>Étape ${idx + 1} :</span> Détecté comme <strong>${step.type}</strong><br>
+          <small style="color: #64748b;">Entrée : ${htmlEntEnc(cleanInput)}</small><br>
+          <small style="color: #a1a1aa;">Sortie : ${htmlEntEnc(cleanOutput)}</small>
+        </div>
+      `;
+    });
+
+    // Bloc final lisible
+    html += `
+      <div class="magic-final">
+        <div class="magic-final-title">🎯 Résultat humain lisible :</div>
+        <div style="font-size: 0.85rem; font-weight: bold; word-break: break-all; background: #020617; padding: 8px; border-radius: 6px; border: 1px solid #22c55e;">
+          ${htmlEntEnc(current)}
+        </div>
+      </div>
+    `;
+    magicOutput.innerHTML = html;
+
+    // Remplissage automatique de la grille principale avec le résultat texte final déduit
+    if (fields['text']) {
+      fields['text'].value = current;
+      updateAll('text');
+    }
+  } else {
+    magicZone.classList.remove('magic-success');
+    magicOutput.innerHTML = '<span style="color:#ef4444; font-style:italic;">Aucun encodage standard connu détecté automatiquement (ou texte non imprimable).</span>';
+  }
+});
+</script>
+</body>
+</html>
