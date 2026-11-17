@@ -237,7 +237,7 @@ Vous pouvez l'utiliser hors ligne, y compris sur une machine isolée : copiez `i
 
 ## Contribution
 
-Les suggestions, issues et pull requests sont les bienvenues. Quelques repères pour rester cohérent avec le projet :
+Les suggestions, issues et pull requests sont les bienvenues ! Forkez le dépôt, clonez-le avec `git clone https://github.com/<votre-pseudo>/convertiseur.git`, faites vos ajouts sur une branche puis ouvrez une Pull Request. Le guide complet est dans [CONTRIBUTING.md](CONTRIBUTING.md). Quelques repères pour rester cohérent avec le projet :
 
 - conserver **un seul fichier** applicatif, sans dépendance ;
 - garder l'interface en **français** ;
