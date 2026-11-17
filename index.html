@@ -111,6 +111,18 @@ body.light #searchBox{background:#fff;color:#0f172a;border-color:#cbd5e1;}
 body.light #clearAllBtn{background:#fff0f0;}
 body.light #themeToggle{background:#f1f5f9;color:#475569;border-color:#cbd5e1;}
 
+/* Paramètres, compteurs, flags */
+.card-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.ccount{font-size:0.55rem;color:#4b5563;white-space:nowrap;}
+.cparam-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:0.6rem;color:#6b7280;}
+.cparam{background:#0a0a0f;border:1px solid #1e2a3a;border-radius:6px;color:#e2e8f0;font-family:inherit;font-size:0.65rem;padding:2px 6px;width:100px;outline:none;}
+.cparam:focus{border-color:#3b82f6;}
+.magic-flag{background:rgba(250,204,21,0.18);color:#facc15;border:1px solid #ca8a04;border-radius:4px;padding:0 3px;}
+.magic-flags{margin-top:6px;font-size:0.72rem;color:#facc15;}
+.magic-final-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;}
+body.light .cparam{background:#f8fafc;border-color:#e2e8f0;color:#0f172a;}
+body.light .magic-flag{background:#fef9c3;color:#854d0e;}
+
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-thumb{background:#374151;border-radius:4px;}
 </style>
@@ -133,10 +145,10 @@ body.light #themeToggle{background:#f1f5f9;color:#475569;border-color:#cbd5e1;}
   </header>
 
   <div class="magic-zone" id="magicZone">
-    <div class="magic-title">✨ Analyseur Intelligent & Multi-Décodeur (Auto-Casser les chaînes)</div>
+    <div class="magic-title">✨ Analyseur Intelligent & Multi-Décodeur (Auto-Casser les chaînes) <span class="ccount" id="magicCount">0 car.</span></div>
     <div class="magic-flex">
       <div class="magic-input-box">
-        <textarea id="magicInput" rows="3" placeholder="Collez ici n'importe quel encodage inconnu (ex: Base64 imbriqué, Hexa, Morse, César...)"></textarea>
+        <textarea id="magicInput" rows="3" placeholder="Collez ici n'importe quel encodage inconnu (ex: Base64 imbriqué, Hexa, Binaire, Morse, Base32/58/85/91, ROT13, César, flag{...})"></textarea>
       </div>
       <div class="magic-output-box" id="magicOutput">
         <span style="color:#4b5563; font-style:italic;">En attente d'une chaîne suspecte...</span>
@@ -225,12 +237,12 @@ function base91Enc(bytes){let b=0,n=0,o='';for(const byte of bytes){b|=byte<<n;n
 function base91Dec(str){let v=-1,b=0,n=0;const out=[];for(const c of str){const p=B91.indexOf(c);if(p===-1)continue;if(v<0){v=p;}else{v+=p*91;b|=v<<n;n+=(v&8191)>88?13:14;v=-1;do{out.push(b&255);b>>=8;n-=8;}while(n>7);}}if(v>-1)out.push((b|v<<n)&255);return dec8(out);}
 
 // UUencode
-function uuEnc(str){const bytes=enc8(str);let out='';for(let i=0;i<bytes.length;i+=45){const line=bytes.slice(i,i+45);out+=String.fromCharCode(line.length+32);for(let j=0;j<line.length;j+=3){const a=line[j]||0,b=line[j+1]||0,c=line[j+2]||0;out+=String.fromCharCode(((a>>2)&63)+32,(((a&3)<<4|(b>>4))&63)+32,(((b&15)<<2|(c>>6))&63)+32,(c&63)+32);}out+='\n';}return out.trim();}
-function uuDec(val){const lines=val.trim().split('\n');const bytes=[];for(const line of lines){if(!line.trim())continue;const len=line.charCodeAt(0)-32;if(len<=0)continue;for(let i=1;i+3<line.length;i+=4){const a=(line.charCodeAt(i)-32)&63,b=(line.charCodeAt(i+1)-32)&63,c=(line.charCodeAt(i+2)-32)&63,d=(line.charCodeAt(i+3)-32)&63;bytes.push((a<<2)|(b>>4),(b<<4)|(c>>2),(c<<6)|d);}}return dec8(bytes);}
+function uuEnc(str){const bytes=enc8(str);let out='';for(let i=0;i<bytes.length;i+=45){const line=bytes.slice(i,i+45);out+=String.fromCharCode(line.length+32);for(let j=0;j<line.length;j+=3){const a=line[j]||0,b=line[j+1]||0,c=line[j+2]||0;out+=[(a>>2)&63,((a&3)<<4|(b>>4))&63,((b&15)<<2|(c>>6))&63,c&63].map(v=>String.fromCharCode(v?v+32:96)).join('');}out+='\n';}return out.trim();}
+function uuDec(val){const lines=val.trim().split('\n');const bytes=[];for(const line of lines){if(!line.trim())continue;const len=line.charCodeAt(0)-32;if(len<=0)continue;const lb=[];for(let i=1;i+3<line.length;i+=4){const a=(line.charCodeAt(i)-32)&63,b=(line.charCodeAt(i+1)-32)&63,c=(line.charCodeAt(i+2)-32)&63,d=(line.charCodeAt(i+3)-32)&63;lb.push(((a<<2)|(b>>4))&255,((b<<4)|(c>>2))&255,((c<<6)|d)&255);}bytes.push(...lb.slice(0,len));}return dec8(bytes);}
 
 // Quoted-Printable
 function qpEnc(str){return enc8(str).map(b=>(b===61||(b<32&&b!==9&&b!==10&&b!==13)||b>126)?'='+b.toString(16).toUpperCase().padStart(2,'0'):String.fromCharCode(b)).join('');}
-function qpDec(val){return val.replace(/=\r?\n/g,'').replace(/=([0-9A-Fa-f]{2})/g,(_,h)=>String.fromCharCode(parseInt(h,16)));}
+function qpDec(val){const s=val.replace(/=\r?\n/g,'');const bytes=[];for(let i=0;i<s.length;){const h=s.substr(i+1,2);if(s[i]==='='&&/^[0-9A-Fa-f]{2}$/.test(h)){bytes.push(parseInt(h,16));i+=3;}else{const ch=String.fromCodePoint(s.codePointAt(i));bytes.push(...enc8(ch));i+=ch.length;}}return dec8(bytes);}
 
 // ROT / César
 const rot=(str,n)=>str.replace(/[a-zA-Z]/g,c=>{const b=c<='Z'?65:97;return String.fromCharCode(((c.charCodeAt(0)-b+n+52)%26)+b);});
@@ -242,24 +254,28 @@ function vigenereEnc(str,key){key=key.toUpperCase();let ki=0;return str.replace(
 function vigenereDec(str,key){key=key.toUpperCase();let ki=0;return str.replace(/[a-zA-Z]/g,c=>{const b=c<='Z'?65:97,k=key.charCodeAt(ki++%key.length)-65;return String.fromCharCode(((c.charCodeAt(0)-b-k+26)%26)+b);});}
 
 const PGRID='ABCDEFGHIKLMNOPQRSTUVWXYZ';
-function polyEnc(str){return str.toUpperCase().replace(/J/g,'I').replace(/[A-Z]/g,c=>{const i=PGRID.indexOf(c);return i<0?c:(Math.floor(i/5)+1)+''+(i%5+1);});}
-function polyDec(str){const c=str.replace(/\s/g,'');let o='';for(let i=0;i<c.length;i+=2){const r=parseInt(c[i])-1,col=parseInt(c[i+1])-1;o+=(r>=0&&r<5&&col>=0&&col<5)?PGRID[r*5+col]:(c[i]+(c[i+1]||''));}return o;}
+const stripAcc=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+function polyEnc(str){return stripAcc(str.toUpperCase()).replace(/J/g,'I').replace(/[A-Z]/g,c=>{const i=PGRID.indexOf(c);return i<0?c:(Math.floor(i/5)+1)+''+(i%5+1);});}
+function polyDec(str){let c=str;if(/^\s*[1-5]{2}(\s+[1-5]{2})+\s*$/.test(c))c=c.replace(/\s+/g,'');let o='';for(let i=0;i<c.length;){if(/[1-5]/.test(c[i])&&/[1-5]/.test(c[i+1]||'')){o+=PGRID[(+c[i]-1)*5+(+c[i+1]-1)];i+=2;}else{o+=c[i];i++;}}return o;}
 
 function railEnc(str,r=3){const rows=Array.from({length:r},()=>[]);let row=0,dir=1;for(const c of str){rows[row].push(c);if(row===0)dir=1;if(row===r-1)dir=-1;row+=dir;}return rows.map(r=>r.join('')).join('');}
-function railDec(str,r=3){const n=str.length,pat=[];let row=0,dir=1;for(let i=0;i<n;i++){pat.push(row);if(row===0)dir=1;if(row===r-1)dir=-1;row+=dir;}const cnt=Array(r).fill(0);pat.forEach(r=>cnt[r]++);const rows=[];let pos=0;for(let i=0;i<r;i++){rows.push(str.slice(pos,pos+cnt[i]).split(''));pos+=cnt[i];}const idx=Array(r).fill(0);let out='';for(const r of pat)out+=rows[r][idx[r]++];return out;}
+function railDec(str,r=3){const chars=Array.from(str),n=chars.length,pat=[];let row=0,dir=1;for(let i=0;i<n;i++){pat.push(row);if(row===0)dir=1;if(row===r-1)dir=-1;row+=dir;}const cnt=Array(r).fill(0);pat.forEach(r=>cnt[r]++);const rows=[];let pos=0;for(let i=0;i<r;i++){rows.push(chars.slice(pos,pos+cnt[i]));pos+=cnt[i];}const idx=Array(r).fill(0);let out='';for(const r of pat)out+=rows[r][idx[r]++];return out;}
+const vigKey=k=>{k=String(k||'').replace(/[^a-zA-Z]/g,'');if(!k)throw new Error('clé vide');return k;};
+const railN=r=>{const n=parseInt(r,10);if(!(n>=2))throw new Error('rails < 2');return Math.min(n,100);};
 
-function baconEnc(str){return str.toUpperCase().replace(/[A-Z]/g,c=>{const n=c.charCodeAt(0)-65;return n.toString(2).padStart(5,'0').replace(/0/g,'A').replace(/1/g,'B');}).replace(/([AB]{5})/g,'$1 ').trim();}
-function baconDec(str){return(str.replace(/\s+/g,'').match(/.{5}/g)||[]).map(g=>{const n=parseInt(g.replace(/A/g,'0').replace(/B/g,'1'),2);return n>=0&&n<26?String.fromCharCode(n+65):'?';}).join('');}
+// Bacon (26 lettres) : lettres groupées par 5, mots séparés par " / ", accents retirés
+function baconEnc(str){return stripAcc(str.toUpperCase()).split(/\s+/).map(w=>(w.match(/[A-Z]/g)||[]).map(c=>(c.charCodeAt(0)-65).toString(2).padStart(5,'0').replace(/0/g,'A').replace(/1/g,'B')).join(' ')).filter(Boolean).join(' / ');}
+function baconDec(str){if(/[C-Zc-z]/.test(str))throw new Error('Bacon: A/B uniquement');const words=str.split('/').map(w=>w.replace(/[^ABab]/g,'').toUpperCase()).filter(Boolean);if(!words.length)throw new Error();return words.map(w=>{if(w.length%5)throw new Error('groupes de 5');return w.match(/.{5}/g).map(g=>{const n=parseInt(g.replace(/A/g,'0').replace(/B/g,'1'),2);return n<26?String.fromCharCode(n+65):'?';}).join('');}).join(' ');}
 
 const LEET_E={a:'4',e:'3',i:'1',o:'0',s:'5',t:'7',l:'1',g:'9',b:'8'};
 const LEET_D=Object.fromEntries(Object.entries(LEET_E).map(([k,v])=>[v,k]));
 const leetEnc=str=>str.toLowerCase().replace(/[a-z]/g,c=>LEET_E[c]||c);
 const leetDec=str=>str.replace(/./g,c=>LEET_D[c]||c);
 
-const MO={A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..',0:'-----',1:'.----',2:'..---',3:'...--',4:'....-',5:'.....',6:'-....',7:'--...',8:'---..',9:'----.'};
+const MO={'.':'.-.-.-',',':'--..--','?':'..--..','!':'-.-.--','/':'-..-.','-':'-....-','_':'..--.-','@':'.--.-.',':':'---...','(':'-.--.',')':'-.--.-',"'":'.----.','=':'-...-',A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..',0:'-----',1:'.----',2:'..---',3:'...--',4:'....-',5:'.....',6:'-....',7:'--...',8:'---..',9:'----.'};
 const MO_R=Object.fromEntries(Object.entries(MO).map(([k,v])=>[v,k]));
 const morseEnc=str=>str.toUpperCase().split('').map(c=>c===' '?'/':MO[c]||'?').join(' ');
-const morseDec=val=>val.trim().split(' / ').map(w=>w.trim().split(' ').map(s=>MO_R[s]||'?').join('')).join(' ');
+const morseDec=val=>val.trim().split(/\s*[\/|]\s+|\s+[\/|]\s*/).map(w=>w.trim().split(' ').map(s=>MO_R[s]||'?').join('')).join(' ');
 
 const NATO={A:'Alpha',B:'Bravo',C:'Charlie',D:'Delta',E:'Echo',F:'Foxtrot',G:'Golf',H:'Hotel',I:'India',J:'Juliet',K:'Kilo',L:'Lima',M:'Mike',N:'November',O:'Oscar',P:'Papa',Q:'Quebec',R:'Romeo',S:'Sierra',T:'Tango',U:'Uniform',V:'Victor',W:'Whiskey',X:'X-ray',Y:'Yankee',Z:'Zulu',0:'Zero',1:'One',2:'Two',3:'Three',4:'Four',5:'Five',6:'Six',7:'Seven',8:'Eight',9:'Nine'};
 const NATO_R=Object.fromEntries(Object.entries(NATO).map(([k,v])=>[v.toLowerCase(),k]));
@@ -279,7 +295,30 @@ async function sha1(s){const b=await crypto.subtle.digest('SHA-1',new TextEncode
 async function sha512(s){const b=await crypto.subtle.digest('SHA-512',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 
 function crc32(str){const bytes=enc8(str);let crc=0xFFFFFFFF;for(const b of bytes){let n=(crc^b)&0xFF;for(let i=0;i<8;i++)n=n&1?(n>>>1)^0xEDB88320:(n>>>1);crc=(crc>>>8)^n;}return((crc^0xFFFFFFFF)>>>0).toString(16).padStart(8,'0');}
-function adler32(str){const bytes=enc8(str);let a=1,b=0;for(const byte of bytes){a=(a+byte)%65521;b=(b+a)%65521;}return((b<<16)|a).toString(16).padStart(8,'0');}
+function adler32(str){const bytes=enc8(str);let a=1,b=0;for(const byte of bytes){a=(a+byte)%65521;b=(b+a)%65521;}return(((b<<16)|a)>>>0).toString(16).padStart(8,'0');}
+
+// MD5 (implémentation pure JS, RFC 1321) sur les octets UTF-8
+const MD5_S=[7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21];
+const MD5_K=Array.from({length:64},(_,i)=>Math.floor(Math.abs(Math.sin(i+1))*4294967296)>>>0);
+function md5(str){
+  const bytes=enc8(str),bitLen=bytes.length*8;
+  bytes.push(0x80);while(bytes.length%64!==56)bytes.push(0);
+  const lo=bitLen>>>0,hi=Math.floor(bitLen/4294967296)>>>0;
+  for(let i=0;i<4;i++)bytes.push((lo>>>(8*i))&255);
+  for(let i=0;i<4;i++)bytes.push((hi>>>(8*i))&255);
+  let a0=0x67452301,b0=0xefcdab89|0,c0=0x98badcfe|0,d0=0x10325476;
+  for(let o=0;o<bytes.length;o+=64){
+    const M=[];for(let i=0;i<16;i++){const p=o+i*4;M[i]=bytes[p]|(bytes[p+1]<<8)|(bytes[p+2]<<16)|(bytes[p+3]<<24);}
+    let A=a0,B=b0,C=c0,D=d0;
+    for(let i=0;i<64;i++){
+      let F,g;
+      if(i<16){F=(B&C)|(~B&D);g=i;}else if(i<32){F=(D&B)|(~D&C);g=(5*i+1)%16;}else if(i<48){F=B^C^D;g=(3*i+5)%16;}else{F=C^(B|~D);g=(7*i)%16;}
+      F=(F+A+MD5_K[i]+M[g])|0;A=D;D=C;C=B;B=(B+((F<<MD5_S[i])|(F>>>(32-MD5_S[i]))))|0;
+    }
+    a0=(a0+A)|0;b0=(b0+B)|0;c0=(c0+C)|0;d0=(d0+D)|0;
+  }
+  return [a0,b0,c0,d0].map(v=>{let h='';for(let i=0;i<4;i++)h+=((v>>>(8*i))&255).toString(16).padStart(2,'0');return h;}).join('');
+}
 
 function unicodeEscEnc(s){return Array.from(s).map(c=>'\\u'+c.codePointAt(0).toString(16).padStart(4,'0')).join('');}
 function unicodeEscDec(v){return v.replace(/\\u([0-9a-fA-F]{4,6})/g,(_,h)=>String.fromCodePoint(parseInt(h,16)));}
@@ -287,11 +326,12 @@ function unicodeUEnc(s){return Array.from(s).map(c=>'U+'+c.codePointAt(0).toStri
 function unicodeUDec(v){return(v.match(/U\+([0-9A-Fa-f]{4,6})/g)||[]).map(u=>String.fromCodePoint(parseInt(u.slice(2),16))).join('');}
 
 const htmlEntEnc=str=>{const el=document.createElement('div');el.appendChild(document.createTextNode(str));return el.innerHTML;};
-const htmlEntDec=val=>{const el=document.createElement('div');el.innerHTML=val;return el.textContent;};
+// Décodage via <textarea> : le contenu est traité comme du texte (RCDATA), aucune balise/handler n'est exécuté
+const htmlEntDec=val=>{const el=document.createElement('textarea');el.innerHTML=val;return el.value;};
 const htmlNumEnc=str=>Array.from(str).map(c=>`&#${c.codePointAt(0)};`).join('');
 
-const a1z26Enc=str=>Array.from(str.toUpperCase()).map(c=>{const n=c.charCodeAt(0)-64;return(n>=1&&n<=26)?n:c;}).join(' ');
-const a1z26Dec=val=>val.trim().split(/\s+/).map(t=>{const n=parseInt(t,10);return(n>=1&&n<=26)?String.fromCharCode(n+64):t;}).join('');
+const a1z26Enc=str=>stripAcc(str.toUpperCase()).split(/\s+/).filter(Boolean).map(w=>Array.from(w).map(c=>{const n=c.charCodeAt(0)-64;return(n>=1&&n<=26)?n:c;}).join(' ')).join(' / ');
+const a1z26Dec=val=>val.trim().split(/\s*\/\s*/).map(w=>w.split(/[\s,\-]+/).filter(Boolean).map(t=>{const n=/^\d+$/.test(t)?parseInt(t,10):0;return(n>=1&&n<=26)?String.fromCharCode(n+64):t;}).join('')).join(' ');
 
 const charcodeEnc=str=>Array.from(str).map(c=>c.charCodeAt(0)).join(',');
 const charcodeDec=val=>val.split(/[,\s]+/).filter(x=>x).map(n=>String.fromCharCode(parseInt(n,10))).join('');
@@ -333,14 +373,22 @@ const ENCODINGS = [
   {id:'rot13',cat:'cipher',label:'ROT13',badge:'+13',color:'violet',ph:'Uryyb',encode:s=>rot(s,13),decode:v=>rot(v,13)},
   {id:'rot47',cat:'cipher',label:'ROT47',badge:'ASCII',color:'pink',ph:':6==@',encode:rot47,decode:rot47},
   {id:'atbash',cat:'cipher',label:'Atbash',badge:'A↔Z',color:'lime',ph:'Svool',encode:atbash,decode:atbash},
+  {id:'vigenere',cat:'cipher',label:'Vigenère',badge:'clé',color:'indigo',ph:'Rijvs Uyvjn',param:{label:'Clé',def:'KEY',type:'text'},encode:(s,k)=>vigenereEnc(s,vigKey(k)),decode:(v,k)=>vigenereDec(v,vigKey(k))},
+  {id:'rail',cat:'cipher',label:'Rail Fence',badge:'zigzag',color:'teal',ph:'Horel ollWd',param:{label:'Rails',def:'3',type:'number',min:2,max:100},encode:(s,r)=>railEnc(s,railN(r)),decode:(v,r)=>railDec(v,railN(r))},
+  {id:'polybius',cat:'cipher',label:'Carré de Polybe',badge:'5×5 (I=J)',color:'cyan',ph:'2315313134',encode:polyEnc,decode:polyDec},
+  {id:'bacon',cat:'cipher',label:'Bacon',badge:'A/B',color:'orange',ph:'AABBB AABAA ...',encode:baconEnc,decode:baconDec},
   {id:'leet',cat:'cipher',label:'Leet Speak',badge:'1337',color:'emerald',ph:'h3ll0',encode:leetEnc,decode:leetDec},
   {id:'morse',cat:'comm',label:'Code Morse',badge:'Signaux',color:'amber',ph:'.... .',encode:morseEnc,decode:morseDec},
   {id:'nato',cat:'comm',label:'Alphabet OTAN',badge:'Phonétique',color:'blue',ph:'Hotel Echo',encode:natoEnc,decode:natoDec},
   {id:'braille',cat:'comm',label:'Braille',badge:'⠓⠑⠇⠇⠕',color:'purple',ph:'⠓⠑⠇⠇⠕',encode:brailleEnc,decode:brailleDec},
   {id:'sha256',cat:'hash',label:'SHA-256',badge:'256-bit',color:'rose',ph:'(lecture seule)',readonly:true,encode:async s=>{try{return await sha256(s);}catch{return 'erreur';}},decode:v=>{throw 0;}},
   {id:'sha1',cat:'hash',label:'SHA-1',badge:'160-bit',color:'pink',ph:'(lecture seule)',readonly:true,encode:async s=>{try{return await sha1(s);}catch{return 'erreur';}},decode:v=>{throw 0;}},
-  {id:'crc32',cat:'hash',label:'CRC-32',badge:'Checksum',color:'orange',ph:'(lecture seule)',readonly:true,encode:s=>crc32(s),decode:v=>{throw 0;}}
+  {id:'sha512',cat:'hash',label:'SHA-512',badge:'512-bit',color:'fuchsia',ph:'(lecture seule)',readonly:true,encode:async s=>{try{return await sha512(s);}catch{return 'erreur';}},decode:v=>{throw 0;}},
+  {id:'md5',cat:'hash',label:'MD5',badge:'128-bit',color:'violet',ph:'(lecture seule)',readonly:true,encode:s=>md5(s),decode:v=>{throw 0;}},
+  {id:'crc32',cat:'hash',label:'CRC-32',badge:'Checksum',color:'orange',ph:'(lecture seule)',readonly:true,encode:s=>crc32(s),decode:v=>{throw 0;}},
+  {id:'adler32',cat:'hash',label:'Adler-32',badge:'Checksum',color:'amber',ph:'(lecture seule)',readonly:true,encode:s=>adler32(s),decode:v=>{throw 0;}}
 ];
+const ENC_BY_ID = Object.fromEntries(ENCODINGS.map(e=>[e.id,e]));
 
 const CATS = {
   all:{label:'✦ Tout',c:'#94a3b8',bc:'#334155'},
@@ -382,8 +430,12 @@ ENCODINGS.forEach(enc => {
         <span class="cbadge">${enc.badge}</span>
         ${enc.readonly?'<span class="cro">🔒 hash</span>':''}
       </div>
-      <span class="cerr" id="err_${enc.id}">⚠ invalide</span>
+      <div class="card-right">
+        <span class="cerr" id="err_${enc.id}">⚠ invalide</span>
+        <span class="ccount" id="cnt_${enc.id}" title="Nombre de caractères">0 car.</span>
+      </div>
     </div>
+    ${enc.param?`<div class="cparam-row"><label for="param_${enc.id}">${enc.param.label}</label><input class="cparam" id="param_${enc.id}" type="${enc.param.type}" value="${enc.param.def}" ${enc.param.min?`min="${enc.param.min}"`:''} ${enc.param.max?`max="${enc.param.max}"`:''} spellcheck="false" autocomplete="off"></div>`:''}
     <textarea id="field_${enc.id}" rows="2" spellcheck="false" autocomplete="off" placeholder="${enc.ph}" ${enc.readonly?'readonly':''}></textarea>
     <div class="card-actions">
       <button class="btn-copy" data-copy="${enc.id}">⧉ Copier</button>
@@ -398,45 +450,85 @@ document.getElementById('totalCount').textContent = ENCODINGS.length;
 const fields = {};
 ENCODINGS.forEach(e => { fields[e.id] = document.getElementById('field_'+e.id); });
 
-let busy = false;
+// Mécanisme « la dernière requête gagne » : chaque mise à jour reçoit un numéro de génération.
+// Les résultats synchrones sont écrits immédiatement ; les résultats async (hashes) ne sont
+// appliqués que si aucune saisie plus récente n'a eu lieu entre-temps.
+let updateGen = 0;
+let lastOrigin = 'text';
+function getParam(id){
+  const e = ENC_BY_ID[id];
+  if(!e || !e.param) return undefined;
+  const el = document.getElementById('param_'+id);
+  return el ? el.value : e.param.def;
+}
+function setCount(id){
+  const c = document.getElementById('cnt_'+id);
+  if(c) c.textContent = Array.from(fields[id].value).length + ' car.';
+}
+function setField(e, v){
+  fields[e.id].value = v;
+  fields[e.id].classList.remove('error');
+  document.getElementById('err_'+e.id).style.display='none';
+  setCount(e.id);
+}
 async function updateAll(originId) {
-  if(busy) return; busy = true;
-  const enc = ENCODINGS.find(e=>e.id===originId);
+  const myGen = ++updateGen;
+  lastOrigin = originId;
+  const enc = ENC_BY_ID[originId];
   const ta = fields[originId];
   const val = ta.value;
   const errEl = document.getElementById('err_'+originId);
+  setCount(originId);
 
-  if(!val.trim()){ clearAll(false); busy=false; return; }
+  if(!val.trim()){
+    ENCODINGS.forEach(e=>{ if(e.id!==originId) fields[e.id].value=''; fields[e.id].classList.remove('error'); document.getElementById('err_'+e.id).style.display='none'; setCount(e.id); });
+    return;
+  }
 
+  let text;
   try {
-    const text = enc.decode(val);
-    ta.classList.remove('error');
-    errEl.style.display = 'none';
-    for(const e of ENCODINGS){
-      if(e.id===originId) continue;
-      try {
-        const result = await Promise.resolve(e.encode(text));
-        fields[e.id].value = result;
-        fields[e.id].classList.remove('error');
-        document.getElementById('err_'+e.id).style.display='none';
-      } catch { fields[e.id].value = e.readonly?'∅':'⚠'; }
-    }
+    text = enc.decode(val, getParam(originId));
+    if(typeof text !== 'string') throw 0;
   } catch {
     ta.classList.add('error');
     errEl.style.display = 'inline';
+    return;
   }
-  busy = false;
+  ta.classList.remove('error');
+  errEl.style.display = 'none';
+
+  const pending = [];
+  for(const e of ENCODINGS){
+    if(e.id===originId) continue;
+    let r;
+    try { r = e.encode(text, getParam(e.id)); } catch { r = e.readonly?'∅':'⚠'; }
+    if(r && typeof r.then === 'function') pending.push(r.then(v=>[e,v], ()=>[e,'∅']));
+    else setField(e, r);
+  }
+  if(!pending.length) return;
+  const results = await Promise.all(pending);
+  if(myGen !== updateGen) return; // une saisie plus récente a pris le relais : on jette ces résultats
+  results.forEach(([e,v])=>setField(e,v));
 }
 
 ENCODINGS.forEach(e => {
   if(!e.readonly) fields[e.id].addEventListener('input', ()=>updateAll(e.id));
+  if(e.param){
+    document.getElementById('param_'+e.id).addEventListener('input', ()=>{
+      // Si la carte paramétrée est la source, on re-déchiffre ; sinon on ré-encode depuis le texte
+      if(lastOrigin===e.id && fields[e.id].value.trim()) updateAll(e.id);
+      else if(fields.text.value) updateAll('text');
+    });
+  }
 });
 
 function clearAll(reset=true){
+  updateGen++; // annule tout calcul async en cours
   ENCODINGS.forEach(e=>{
     if(reset) fields[e.id].value='';
     fields[e.id].classList.remove('error');
     document.getElementById('err_'+e.id).style.display='none';
+    setCount(e.id);
   });
 }
 
@@ -453,13 +545,18 @@ function applyFilter(){
 catFilters.addEventListener('click', e=>{
   const btn = e.target.closest('.catbtn');
   if(!btn) return;
-  activeFilter = btn.dataset.cat;
+  setFilter(btn.dataset.cat);
+});
+function setFilter(cat){
+  if(!CATS[cat]) cat = 'all';
+  activeFilter = cat;
   catFilters.querySelectorAll('.catbtn').forEach(b=>{
     b.classList.toggle('active', b.dataset.cat===activeFilter);
     b.style.background = b.dataset.cat===activeFilter?'#1e293b':'transparent';
   });
   applyFilter();
-});
+  try{ localStorage.setItem('conv_filter', cat); }catch{}
+}
 
 document.getElementById('searchBox').addEventListener('input', e=>{
   searchTerm = e.target.value.toLowerCase().trim();
@@ -482,136 +579,242 @@ document.addEventListener('click', e=>{
 document.getElementById('clearAllBtn').addEventListener('click',()=> {
   clearAll(true);
   document.getElementById('magicInput').value = '';
-  document.getElementById('magicOutput').innerHTML = '<span style="color:#4b5563; font-style:italic;">En attente d\'une chaîne suspecte...</span>';
-  document.getElementById('magicZone').classList.remove('magic-success');
+  resetMagic();
 });
 
-document.getElementById('themeToggle').addEventListener('click',()=>{
-  document.body.classList.toggle('light');
-  document.getElementById('themeToggle').textContent = document.body.classList.contains('light')?'🌙 Sombre':'☀ Thème';
-});
+function setTheme(light){
+  document.body.classList.toggle('light', light);
+  document.getElementById('themeToggle').textContent = light?'🌙 Sombre':'☀ Thème';
+  try{ localStorage.setItem('conv_theme', light?'light':'dark'); }catch{}
+}
+document.getElementById('themeToggle').addEventListener('click',()=> setTheme(!document.body.classList.contains('light')));
+
+// Restauration des préférences (thème + filtre)
+(()=>{
+  let theme=null, filter=null;
+  try{ theme=localStorage.getItem('conv_theme'); filter=localStorage.getItem('conv_filter'); }catch{}
+  if(theme==='light') setTheme(true);
+  if(filter && CATS[filter] && filter!=='all') setFilter(filter);
+})();
 
 
 // ═══════════════════ ANALYSEUR INTELLIGENT COMPLET & RECURSIF ═══════════════════
 const magicInput = document.getElementById('magicInput');
 const magicOutput = document.getElementById('magicOutput');
 const magicZone = document.getElementById('magicZone');
+const magicCount = document.getElementById('magicCount');
+const MAGIC_IDLE = '<span style="color:#4b5563; font-style:italic;">En attente d\'une chaîne suspecte...</span>';
+let magicResult = '';
+
+function resetMagic(){
+  magicOutput.innerHTML = MAGIC_IDLE;
+  magicZone.classList.remove('magic-success');
+  magicCount.textContent = '0 car.';
+  magicResult = '';
+}
+
+// --- Outils de scoring ---
+const decStrict = b => new TextDecoder('utf-8', {fatal:true}).decode(new Uint8Array(b));
+// Texte imprimable (tout Unicode) : refuse caractères de contrôle, U+FFFD, surrogates isolés, zones privées / non assignées
+const isReadable = str => typeof str === 'string' && str.trim().length > 0 &&
+  !/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\uFFFD]|[\p{Cs}\p{Co}\p{Cn}]/u.test(str);
+const textRatio = s => { const a = Array.from(s); if(!a.length) return 0; return a.filter(c=>/[\p{L}\p{N}\s.,;:!?'"()\[\]{}_@#&*+=\/-]/u.test(c)).length / a.length; };
+const letterRatio = s => { const a = Array.from(s); if(!a.length) return 0; return a.filter(c=>/[\p{L}\s]/u.test(c)).length / a.length; };
+const COMMON = new Set(('the be to of and a in that have i it for not on with he as you do at this but his by from they we say her she or an will my one all would there their what so up out if about who get which go me when make can like time no just him know take people into year your good some could them see other than then now look only come its over think also back after use two how our work first well way even new want because any these give day most us is are was were has had been am hello world flag secret password key message quick brown fox jumps lazy dog test welcome try again here find found answer hidden code '+
+  'le la les un une des du de et est en que qui dans pour pas sur au aux avec il elle ils nous vous je tu ce cette son sa ses mais ou donc ni car bonjour monde merci oui non très plus tout bien fait être avoir mot passe clé drapeau voici bravo salut').split(' '));
+const wordScore = s => { const w = s.toLowerCase().match(/\p{L}+/gu) || []; if(!w.length) return 0; return w.filter(x=>COMMON.has(x)).length / w.length; };
+const KNOWN_FLAG = /\b(?:flag|ctf|thm|picoctf|htb|ductf|csaw|hackthebox|rm|dghack|root-me)\{[^{}\n]{1,200}\}/i;
+const ANY_FLAG = /\b[A-Za-z][A-Za-z0-9_-]{1,19}\{[^{}\n]{1,200}\}/g;
+const hasAnyFlag = s => { ANY_FLAG.lastIndex = 0; return ANY_FLAG.test(s); };
+const magicScore = s => wordScore(s)*2 + letterRatio(s) + (KNOWN_FLAG.test(s)?3:0) + (hasAnyFlag(s)?0.5:0);
+// Pour les chiffrements par substitution (toujours « lisibles ») : n'accepter que si le texte s'améliore nettement
+const commonLetters = s => (s.toLowerCase().match(/\p{L}+/gu) || []).filter(x=>COMMON.has(x)).join('').length;
+const improvesText = (out, cur) => (KNOWN_FLAG.test(out) && !KNOWN_FLAG.test(cur)) ||
+  (wordScore(out) >= 0.4 && wordScore(out) - wordScore(cur) >= 0.25 && commonLetters(out) >= 5);
+const strongText = s => textRatio(s) >= 0.85 && letterRatio(s) >= 0.5;
+// Garde-fou pour les bases « génériques » (alphabets larges) : il faut des mots connus, un flag,
+// ou au moins 6 caractères latins imprimables très majoritairement alphabétiques
+const genericOk = s => hasAnyFlag(s) || (wordScore(s) > 0 && textRatio(s) >= 0.9) ||
+  (Array.from(s).length >= 6 && /^[\x20-\x7E\u00A0-\u00FF\r\n\t]+$/.test(s) && letterRatio(s) >= 0.85);
+
+function bigBaseBytes(str, alphabet){
+  const base = BigInt(alphabet.length); let num = 0n;
+  for(const c of str){ const i = alphabet.indexOf(c); if(i<0) return null; num = num*base + BigInt(i); }
+  let lead = 0; for(const c of str){ if(c===alphabet[0]) lead++; else break; }
+  const out = []; while(num > 0n){ out.unshift(Number(num & 255n)); num >>= 8n; }
+  return Array(lead).fill(0).concat(out);
+}
+function morseLoose(s){
+  const words = s.trim().replace(/_/g,'-').split(/\s*[\/|]\s*|\s{3,}/).filter(Boolean);
+  return words.map(w=>w.trim().split(/\s+/).map(x=>{ if(!(x in MO_R)) throw new Error('morse'); return MO_R[x]; }).join('')).join(' ');
+}
+const numTokens = s => s.trim().split(/[\s,;]+/).filter(Boolean);
+
+// --- Détecteurs, groupés par niveau : du plus spécifique au plus générique ---
+// Dans un niveau, tous les candidats valides sont comparés et le mieux noté l'emporte.
+const TIERS = [
+  [ // 1. Marqueurs explicites
+    s => /^\s*<~[\s\S]*~>\s*$/.test(s) ? {name:'Ascii85', out:ascii85Dec(s)} : null,
+    s => /\\u\{?[0-9a-fA-F]{2,6}\}?|\\x[0-9a-fA-F]{2}|U\+[0-9A-Fa-f]{4,6}/.test(s) ? {name:'Échappements Unicode (\\uXXXX / \\xNN / U+)', out:
+      (()=>{ let t = s.replace(/\\u\{([0-9a-fA-F]{1,6})\}/g,(_,h)=>String.fromCodePoint(parseInt(h,16))).replace(/\\u([0-9a-fA-F]{4})/g,(_,h)=>String.fromCharCode(parseInt(h,16)));
+             if(/U\+[0-9A-Fa-f]{4,6}/.test(t)) t = t.replace(/U\+([0-9A-Fa-f]{4,6})\s?/g,(_,h)=>String.fromCodePoint(parseInt(h,16)));
+             if(/\\x[0-9a-fA-F]{2}/.test(t)) { const b=[]; for(let i=0;i<t.length;){ const m=/^\\x([0-9a-fA-F]{2})/.exec(t.slice(i,i+4)); if(m){b.push(parseInt(m[1],16));i+=4;} else { const ch=String.fromCodePoint(t.codePointAt(i)); b.push(...enc8(ch)); i+=ch.length; } } t = decStrict(b); }
+             return t; })()} : null,
+    s => /&(#\d{1,7}|#x[0-9a-fA-F]{1,6}|[a-zA-Z][a-zA-Z0-9]{1,31});/.test(s) ? {name:'Entités HTML', out:htmlEntDec(s)} : null,
+    s => /%[0-9a-fA-F]{2}/.test(s) ? {name:'URL Percent Encoding', out:decodeURIComponent(/%20/.test(s)?s:s.replace(/\+/g,' '))} : null,
+    s => { const m = s.match(/=[0-9A-F]{2}/g); if(!m || /^[A-Za-z0-9+\/]+={1,2}$/.test(s.trim())) return null;
+      // en QP, seuls '=' , les blancs/fin de ligne et les octets non ASCII sont encodés
+      if(!m.every(x=>{ const v = parseInt(x.slice(1),16); return v>=0x80 || [0x3D,0x09,0x0A,0x0D,0x20].includes(v); })) return null;
+      return {name:'Quoted-Printable', out:qpDec(s)}; },
+  ],
+  [ // 2. Alphabets très restreints
+    s => { if(!/^[01\s,]+$/.test(s)) return null; const toks = s.trim().split(/[\s,]+/);
+      let bytes;
+      if(toks.length>1 && toks.every(t=>t.length===7)) bytes = toks.map(t=>parseInt(t,2));
+      else { const c = s.replace(/[\s,]/g,''); if(c.length<8 || c.length%8) return null; bytes = c.match(/.{8}/g).map(b=>parseInt(b,2)); }
+      return {name:'Binaire', out:decStrict(bytes)}; },
+    s => /^[.\-_\/|\s]+$/.test(s) && /[.\-]/.test(s) ? {name:'Code Morse', out:morseLoose(s)} : null,
+    s => { if(!/^[ABab\s\/]+$/.test(s)) return null; const c = s.replace(/[\s\/]/g,''); if(c.length<10 || c.length%5) return null;
+      const out = baconDec(s); return out.includes('?') ? null : {name:'Chiffre de Bacon', out}; },
+  ],
+  [ // 3. Formats numériques (décimal / octal / hex / A1Z26) — départagés par score
+    s => { if(!/^\s*\d{1,7}([\s,;]+\d{1,7})+\s*$/.test(s)) return null; const n = numTokens(s).map(Number);
+      if(n.every(x=>x<=255)) { try { return {name:'Décimal ASCII', out:decStrict(n)}; } catch {} }
+      if(n.every(x=>x<=0x10FFFF)) { const out = String.fromCodePoint(...n); return genericOk(out) ? {name:'Codes caractères (décimal)', out} : null; } return null; },
+    s => { if(!/^\s*[0-7]{2,3}([\s,;]+[0-7]{2,3})+\s*$/.test(s)) return null; const n = numTokens(s).map(t=>parseInt(t,8));
+      if(n.some(x=>x>255)) return null; return {name:'Octal', out:decStrict(n)}; },
+    s => { if(!/^[0-9a-fA-Fx\\\s:,;-]+$/.test(s)) return null; const c = s.replace(/0x|\\x|[\s:,;-]/gi,'');
+      if(!/^[0-9a-fA-F]+$/.test(c) || c.length<4 || c.length%2) return null;
+      const out = decStrict(c.match(/.{2}/g).map(h=>parseInt(h,16)));
+      return textRatio(out) >= 0.7 ? {name:'Hexadécimal (Base16)', out} : null; },
+    s => { if(!/^\s*\d{1,2}([\s,\-\/]+\d{1,2})+\s*$/.test(s)) return null;
+      const words = s.trim().split(/\s*\/\s*|\s{2,}/).map(w=>w.split(/[\s,\-]+/).filter(Boolean));
+      const toks = words.flat(); if(toks.length<3 || !toks.every(t=>+t>=1 && +t<=26)) return null;
+      return {name:'A1Z26 (A=1…Z=26)', out:words.map(w=>w.map(t=>String.fromCharCode(64+ +t)).join('')).join(' ')}; },
+  ],
+  [ // 4. Base32 / Base64
+    s => { const c = s.replace(/\s/g,''); if(!/^[A-Z2-7]+=*$/.test(c) && !/^[a-z2-7]+=*$/.test(c)) return null;
+      if(c.length<8 || (c.includes('=') && c.length%8)) return null;
+      const out = decStrict(base32Dec(c)); return (strongText(out) && genericOk(out)) || hasAnyFlag(out) ? {name:'Base32', out} : null; },
+    s => { let c = s.replace(/\s/g,''); if(!/^[A-Za-z0-9+\/\-_]+={0,2}$/.test(c) || c.length<4) return null;
+      const url = /[-_]/.test(c); if(url && /[+\/]/.test(c)) return null;
+      c = c.replace(/-/g,'+').replace(/_/g,'/').replace(/=+$/,''); if(c.length%4===1) return null;
+      while(c.length%4) c += '=';
+      const out = decStrict(Array.from(atob(c), ch=>ch.charCodeAt(0)));
+      return textRatio(out) >= 0.8 ? {name: url?'Base64 URL-safe':'Base64', out} : null; },
+  ],
+  [ // 5. Bases génériques : uniquement si l'aller-retour est exact et le résultat très « texte »
+    s => { const c = s.trim(); if(c.length<4 || !/^[1-9A-HJ-NP-Za-km-z]+$/.test(c)) return null;
+      const b = bigBaseBytes(c, B58); if(!b) return null; const out = decStrict(b);
+      return (genericOk(out) && baseNEnc(58,B58)(out)===c) ? {name:'Base58', out} : null; },
+    s => { const c = s.trim(); if(c.length<5 || !/^[!-u]+$/.test(c)) return null; const out = ascii85Dec(c);
+      return (genericOk(out) && ascii85Enc(out)==='<~'+c+'~>') ? {name:'Ascii85 (sans délimiteurs)', out} : null; },
+    s => { const c = s.trim(); if(c.length<5) return null; const b = bigBaseBytes(c, B85); if(!b) return null; const out = decStrict(b);
+      return (genericOk(out) && baseNEnc(85,B85)(out)===c) ? {name:'Base85 (RFC 1924)', out} : null; },
+    s => { const c = s.trim(); if(c.length<6 || [...c].some(ch=>!B91.includes(ch))) return null;
+      const out = base91Dec(c); return (genericOk(out) && base91Enc(enc8(out))===c) ? {name:'Base91', out} : null; },
+  ],
+  [ // 6. Chiffrements par substitution : seulement si le résultat ressemble nettement plus à du texte
+    s => { const out = rot(s,13); return improvesText(out,s) ? {name:'ROT13', out} : null; },
+    s => { const out = rot47(s); return improvesText(out,s) ? {name:'ROT47', out} : null; },
+    s => { const out = atbash(s); return improvesText(out,s) ? {name:'Atbash', out} : null; },
+    s => { let best=null; for(let k=1;k<26;k++){ if(k===13) continue; const out = rot(s,k); if(improvesText(out,s) && (!best || magicScore(out)>best.sc)) best={name:`César (clé ${26-k})`, out, sc:magicScore(out)}; } return best; },
+  ],
+];
+
+function magicAnalyze(raw){
+  let current = raw;
+  const steps = [];
+  const seen = new Set([raw]);
+  for(let it=0; it<12; it++){
+    if(KNOWN_FLAG.test(current)) break; // flag trouvé : on s'arrête là
+    let found = null;
+    for(const tier of TIERS){
+      let best = null;
+      for(const det of tier){
+        let r; try { r = det(current); } catch { r = null; }
+        if(!r || typeof r.out!=='string' || r.out===current || !isReadable(r.out) || seen.has(r.out)) continue;
+        const sc = magicScore(r.out);
+        if(!best || sc > best.sc) best = {name:r.name, out:r.out, sc};
+      }
+      if(best){ found = best; break; }
+    }
+    if(!found) break;
+    steps.push({type:found.name, input:current, output:found.out});
+    seen.add(found.out);
+    current = found.out;
+  }
+  return {steps, current};
+}
+
+// Échappe tout le texte et surligne les flags (THM{..}, flag{..}, CTF{..}, picoCTF{..}, MOT{..})
+function highlightFlags(str){
+  let out = '', last = 0, m; const flags = [];
+  ANY_FLAG.lastIndex = 0;
+  while((m = ANY_FLAG.exec(str))){
+    out += htmlEntEnc(str.slice(last, m.index)) + '<mark class="magic-flag">' + htmlEntEnc(m[0]) + '</mark>';
+    flags.push(m[0]); last = m.index + m[0].length;
+  }
+  return {html: out + htmlEntEnc(str.slice(last)), flags};
+}
+
+function renderFinal(current){
+  const hl = highlightFlags(current);
+  magicResult = current;
+  return `
+      <div class="magic-final">
+        <div class="magic-final-head">
+          <div class="magic-final-title">🎯 Résultat humain lisible :</div>
+          <button class="btn-copy" id="magicCopyBtn" type="button">⧉ Copier</button>
+        </div>
+        <div style="font-size: 0.85rem; font-weight: bold; word-break: break-all; white-space: pre-wrap; background: #020617; padding: 8px; border-radius: 6px; border: 1px solid #22c55e;">${hl.html}</div>
+        ${hl.flags.length?`<div class="magic-flags">🚩 Flag${hl.flags.length>1?'s':''} détecté${hl.flags.length>1?'s':''} : ${hl.flags.map(f=>'<mark class="magic-flag">'+htmlEntEnc(f)+'</mark>').join(' ')}</div>`:''}
+      </div>`;
+}
 
 magicInput.addEventListener('input', () => {
+  magicCount.textContent = Array.from(magicInput.value).length + ' car.';
   const raw = magicInput.value.trim();
-  if (!raw) {
-    magicOutput.innerHTML = '<span style="color:#4b5563; font-style:italic;">En attente d\'une chaîne suspecte...</span>';
-    magicZone.classList.remove('magic-success');
-    return;
-  }
+  if (!raw) { resetMagic(); return; }
 
-  let current = raw;
-  let steps = [];
-  let maxIterations = 8; // Permet de casser les chaînes imbriquées à plusieurs couches
-  let loop = true;
+  const {steps, current} = magicAnalyze(raw);
 
-  // Fonction de validation pour savoir si la chaîne décodée contient du texte lisible
-  const isReadable = str => /^[\x20-\x7E\r\n\tÀ-ÿ]+$/.test(str) && str.trim().length > 0;
-
-  while (loop && maxIterations > 0) {
-    maxIterations--;
-    let matched = false;
-
-    // 1. Détection HEXADÉCIMAL
-    if (!matched && /^[0-9a-fA-F\s:]+$/.test(current)) {
-      let cleanHex = current.replace(/[\s:]/g, '');
-      if (cleanHex.length >= 4 && cleanHex.length % 2 === 0) {
-        try {
-          let decoded = hexEntDec(cleanHex);
-          if (isReadable(decoded) && decoded !== current) {
-            steps.push({ type: 'Hexadécimal (Base16)', input: current, output: decoded });
-            current = decoded; matched = true;
-          }
-        } catch(e){}
-      }
-    }
-
-    // 2. Détection BASE64
-    if (!matched && /^[A-Za-z0-9+/=\s\r\n]+$/.test(current)) {
-      let cleanB64 = current.replace(/[\s\r\n]/g, '');
-      if (cleanB64.length >= 4 && cleanB64.length % 4 === 0) {
-        try {
-          let decoded = decodeURIComponent(escape(atob(cleanB64)));
-          if (isReadable(decoded) && decoded !== current) {
-            steps.push({ type: 'Base64', input: current, output: decoded });
-            current = decoded; matched = true;
-          }
-        } catch(e){}
-      }
-    }
-
-    // 3. Détection CODE MORSE
-    if (!matched && /^[.\-/\s]+$/.test(current) && (current.includes('.') || current.includes('-'))) {
-      try {
-        let decoded = morseDec(current);
-        if (isReadable(decoded) && !decoded.includes('?')) {
-          steps.push({ type: 'Code Morse', input: current, output: decoded });
-          current = decoded; matched = true;
-        }
-      } catch(e){}
-    }
-
-    // 4. Détection URL ENCODÉ
-    if (!matched && current.includes('%')) {
-      try {
-        let decoded = decodeURIComponent(current);
-        if (decoded !== current && isReadable(decoded)) {
-          steps.push({ type: 'URL Percent Encoding', input: current, output: decoded });
-          current = decoded; matched = true;
-        }
-      } catch(e){}
-    }
-
-    // Si aucun décodeur n'a matché à ce cycle, on arrête la récursion
-    if (!matched) {
-      loop = false;
-    }
-  }
-
-  // Affichage des résultats
   if (steps.length > 0) {
     magicZone.classList.add('magic-success');
     let html = `<div style="margin-bottom: 10px; font-weight: bold; color: #4ade80;">✓ Chemin de décodage trouvé (${steps.length} étape${steps.length > 1 ? 's' : ''}) :</div>`;
-    
     steps.forEach((step, idx) => {
-      // Sécurisation de l'affichage HTML
-      let cleanInput = step.input.length > 60 ? step.input.substring(0, 57) + '...' : step.input;
-      let cleanOutput = step.output.length > 60 ? step.output.substring(0, 57) + '...' : step.output;
-      
+      const cleanInput = step.input.length > 60 ? step.input.substring(0, 57) + '...' : step.input;
+      const cleanOutput = step.output.length > 60 ? step.output.substring(0, 57) + '...' : step.output;
       html += `
         <div class="magic-step">
-          <span>Étape ${idx + 1} :</span> Détecté comme <strong>${step.type}</strong><br>
+          <span>Étape ${idx + 1} :</span> Détecté comme <strong>${htmlEntEnc(step.type)}</strong><br>
           <small style="color: #64748b;">Entrée : ${htmlEntEnc(cleanInput)}</small><br>
           <small style="color: #a1a1aa;">Sortie : ${htmlEntEnc(cleanOutput)}</small>
-        </div>
-      `;
+        </div>`;
     });
-
-    // Bloc final lisible
-    html += `
-      <div class="magic-final">
-        <div class="magic-final-title">🎯 Résultat humain lisible :</div>
-        <div style="font-size: 0.85rem; font-weight: bold; word-break: break-all; background: #020617; padding: 8px; border-radius: 6px; border: 1px solid #22c55e;">
-          ${htmlEntEnc(current)}
-        </div>
-      </div>
-    `;
-    magicOutput.innerHTML = html;
+    magicOutput.innerHTML = html + renderFinal(current);
 
     // Remplissage automatique de la grille principale avec le résultat texte final déduit
     if (fields['text']) {
       fields['text'].value = current;
       updateAll('text');
     }
+  } else if (hasAnyFlag(raw)) {
+    magicZone.classList.add('magic-success');
+    magicOutput.innerHTML = '<div style="margin-bottom: 10px; font-weight: bold; color: #4ade80;">✓ Aucun décodage nécessaire.</div>' + renderFinal(raw);
   } else {
+    magicResult = '';
     magicZone.classList.remove('magic-success');
     magicOutput.innerHTML = '<span style="color:#ef4444; font-style:italic;">Aucun encodage standard connu détecté automatiquement (ou texte non imprimable).</span>';
   }
+});
+
+magicOutput.addEventListener('click', e => {
+  const btn = e.target.closest('#magicCopyBtn');
+  if(!btn || !magicResult) return;
+  const done = () => { btn.classList.add('copied'); btn.textContent='✓ Copié!'; setTimeout(()=>{btn.classList.remove('copied');btn.textContent='⧉ Copier';},1200); };
+  const fallback = () => { const t=document.createElement('textarea'); t.value=magicResult; document.body.appendChild(t); t.select(); try{document.execCommand('copy');}catch{} t.remove(); done(); };
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(magicResult).then(done, fallback); else fallback();
 });
 </script>
 </body>
